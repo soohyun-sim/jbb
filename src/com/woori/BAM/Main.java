@@ -1,21 +1,31 @@
 package com.woori.BAM;
-
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
 public class Main {
+    // static 멤버 필드
+    static int lastArticleID = 1;  // lastArticleId --> 전역변수
+    static List<Article> articles = new ArrayList<>();  //articles --> 전역변수
+
+    static void makeTestData() {  // static 메서드안에서는 static 멤버 필드를 사용한다, 일반 멤버 필드는 사용불가
+        for(int i=1;i<501;i++){
+            Article ar = new Article(lastArticleID++,"제목"+i, "내용"+i, Util.getDateStr(), i) ;
+            articles.add(ar);
+        }
+    }
+
     public static void main(String[] args) {
+
         System.out.println("== 프로그램 시작 ==");
         Scanner sc = new Scanner(System.in);
-        int lastArticleID  = 1;       //마지막 article 번호 저장용 사용
-        List<Article> articles = new ArrayList<>();  // 변수 articles 의 타입은 --> 제너릭 <article>
-        // ArrayList --> List를 구현하는 구현 class
+        //일반 메서드는 호출 불가
+        makeTestData();   //  makeTestData() --> 메서드가 static 메서드 일수 밖에 없는 이유
+
         while (true) {
             System.out.printf("cmd) ");
             String cmd = sc.nextLine().trim();
-//            System.out.println("명령어) " + cmd);  중복으로 제거
+
             if (cmd.length() == 0) {
                 System.out.println("명령어를 입력해 주세요");
                 continue;
@@ -23,150 +33,149 @@ public class Main {
             if (cmd.equals("exit")) {
                 break;
             }
-            if ( cmd.equals("article list")) {
-                if (articles.size() == 0) {           // size() 공부,  누구의 메서드?
+            if (cmd.equals("article list")) {
+                if (articles.size() == 0) {
                     System.out.println("게시글이 없습니다");
                     continue;
                 }
-                System.out.println("번호  |   제목   |   내용   |   날짜   |   조회수");
-                for(int i = articles.size() - 1 ; i >= 0 ; i-- ) {    //articles 역순으로 출력
-                    Article article= articles.get(i);
-                    System.out.printf("%d    |    %s    |    %s    |    %s    |    %d\n" , article.id, article.title, article.body, article.date, article.upHit);
+                System.out.println("번호    |     제목     |    내용   |         regDate        |  조회수");
+                for (int i = articles.size() - 1; i >= 0; i--) {
+                    Article article = articles.get(i);
+                    System.out.printf("%d    |    %s   |  %s  |   %s  |  %d\n", article.id, article.title, article.body, article.regDate , article.viewCnt );  //static 메서드 호출
                 }
             } else if (cmd.equals("article write")) {
                 System.out.print("제목 : ");
                 String title = sc.nextLine();
                 System.out.print("내용 : ");
                 String body = sc.nextLine();
-                LocalDateTime date = LocalDateTime.now();
                 System.out.println(lastArticleID + " 번글이 생성되었습니다");
 
-//                Article article = new Article();  //default 생성자
-                Article article = new Article(lastArticleID, title, body, date); // 인자를 통해 생성자 호출
-
-//                article.id = lastArticleID;
-//                article.title = title;
-//                article.body = body;
+                Article article = new Article(lastArticleID, title, body, Util.getDateStr(),0 ); // viewCnt --> write 실행, 저장 --> viewCnt --> 0 이다
 
                 articles.add(article);
                 lastArticleID++;
-            } else if (cmd.startsWith("article detail")) { //startswith() 특정 문자열로 문자열 시작? -> trus or false
-                String[] cmdBits = cmd.split(" ");    //split(" ")  "  " 구분자로 문자열 분리해서 배열로 return
-//                System.out.println(cmdBits[0]);
-//                System.out.println(cmdBits[1]);
-//                System.out.println(cmdBits[2]);
-                Article foundArticle = null ;  // foundArticle 용도는 'null check' 사용
-                int id = 0;  // 변수 id가 try문 추가함으로 인해 지역변수화 --> 선언 위치 조정 --> 조금더 큰 지역변수로 선언/초기화
+            } else if (cmd.startsWith("article detail")) {
+                String[] cmdBits = cmd.split(" ");
+                Article foundArticle = null;
+                int id = 0;
 
                 try {
-                    id = Integer.parseInt(cmdBits[2]); //"1" --> 문자를 숫자로 변환 로직
+                    id = Integer.parseInt(cmdBits[2]);
 
-                } catch (NumberFormatException e) {   // (예외타입 변수명)
+                } catch (NumberFormatException e) {
                     System.out.println("정수를 입력하시길 바랍니다");
                     continue;   // while 다시 실행해
                 } catch (Exception e) {
                     //(그밖에 모든 Exception 변수명)
                 }
-
-                for(Article article : articles) {
+                for (Article article : articles) {
                     if (article.id == id) {
-                        foundArticle = article;   //search 성공시 article 객체를 --> foundArticle 대입
+                        foundArticle = article;
                         break;  //for문을 빠져나감
                     }
                 }
                 if (foundArticle == null) { //serarch 수행했으나 게시글이 없음
-                    System.out.printf("%d번 게시물이 존재하지 않습니다\n" , id);
+                    System.out.printf("%d번 게시물이 존재하지 않습니다\n", id);
                     continue; //while문을 다시 시작해라
                 }
+
+                foundArticle.increaseViewCnt();
+
                 // serach후 detail 내용 출력
-                foundArticle.upHit++;
                 System.out.println("번호 : " + foundArticle.id);
-                System.out.println("날짜 : " + foundArticle.date);
+                System.out.println("날짜 : " + foundArticle.regDate); //날짜 + 시간 출력
                 System.out.println("제목 : " + foundArticle.title);
                 System.out.println("내용 : " + foundArticle.body);
-                System.out.println("조회수 : " + foundArticle.upHit);
+                System.out.println("조회수 : " + foundArticle.viewCnt);
+
             } else if (cmd.startsWith("article modify")) {
                 String[] cmdBits = cmd.split(" ");
-                Article foundArticle = null ;  // foundArticle 용도는 'null check' 사용
-                int id = 0;  // 변수 id가 try문 추가함으로 인해 지역변수화 --> 선언 위치 조정 --> 조금더 큰 지역변수로 선언/초기화
+                Article foundArticle = null;
+                int id = 0;
 
                 try {
-                    id = Integer.parseInt(cmdBits[2]); //"1" --> 문자를 숫자로 변환 로직
+                    id = Integer.parseInt(cmdBits[2]);
 
-                } catch (NumberFormatException e) {   // (예외타입 변수명)
+                } catch (NumberFormatException e) {
                     System.out.println("정수를 입력하시길 바랍니다");
                     continue;   // while 다시 실행해
                 } catch (Exception e) {
                     //(그밖에 모든 Exception 변수명)
                 }
-
-                for(Article article : articles) {
+                for (Article article : articles) {
                     if (article.id == id) {
-                        foundArticle = article;   //search 성공시 article 객체를 --> foundArticle 대입
+                        foundArticle = article;
                         break;  //for문을 빠져나감
                     }
                 }
                 if (foundArticle == null) { //serarch 수행했으나 게시글이 없음
-                    System.out.printf("%d번 게시물이 존재하지 않습니다\n" , id);
+                    System.out.printf("%d번 게시물이 존재하지 않습니다\n", id);
                     continue; //while문을 다시 시작해라
                 }
-                System.out.print("수정할 제목 : ");
-                String title = sc.nextLine();
-                System.out.print("수정할 내용 : ");
-                String body = sc.nextLine();
-                LocalDateTime date = LocalDateTime.now();
-                System.out.println(id + " 번글이 수정되었습니다");
+                // serach후 modify 내용 출력
+                System.out.print("수정할 제목 :" );
+                String title = sc.nextLine().trim();
+                System.out.print("수정할 내용 :" );
+                String body = sc.nextLine().trim();
 
                 foundArticle.title = title;
                 foundArticle.body = body;
-                foundArticle.date = date;
+                System.out.println(id + "번 게시물이 수정되었습니다");
 
-            } else if (cmd.startsWith("article remove")) {
+            } else if (cmd.startsWith("article delete")) {
                 String[] cmdBits = cmd.split(" ");
-                Article foundArticle = null ;  // foundArticle 용도는 'null check' 사용
-                int id = 0;  // 변수 id가 try문 추가함으로 인해 지역변수화 --> 선언 위치 조정 --> 조금더 큰 지역변수로 선언/초기화
+                Article foundArticle = null;
+                int id = 0;
 
                 try {
-                    id = Integer.parseInt(cmdBits[2]); //"1" --> 문자를 숫자로 변환 로직
+                    id = Integer.parseInt(cmdBits[2]);
 
-                } catch (NumberFormatException e) {   // (예외타입 변수명)
+                } catch (NumberFormatException e) {
                     System.out.println("정수를 입력하시길 바랍니다");
                     continue;   // while 다시 실행해
                 } catch (Exception e) {
                     //(그밖에 모든 Exception 변수명)
                 }
-
-                for(Article article : articles) {
+                for (Article article : articles) {
                     if (article.id == id) {
-                        foundArticle = article;   //search 성공시 article 객체를 --> foundArticle 대입
+                        foundArticle = article;
                         break;  //for문을 빠져나감
                     }
                 }
                 if (foundArticle == null) { //serarch 수행했으나 게시글이 없음
-                    System.out.printf("%d번 게시물이 존재하지 않습니다\n" , id);
+                    System.out.printf("%d번 게시물이 존재하지 않습니다\n", id);
                     continue; //while문을 다시 시작해라
                 }
-                articles.remove(foundArticle);
-                System.out.printf("%d번 게시물이 삭제되었습니다\n" , id);
+                // serach후 delete
+//                articles.remove(id-1);        //remove(int index) 1번 방식
+                articles.remove(foundArticle);  //remove(Object e)  2번 방식 --> 권장
+
+                System.out.println(id + "번 게시물이 삭제되었습니다");
+
             } else {
                 System.out.println("존재하지 않는 명령어 입니다");
-
             }
         }
         System.out.println("== 프로그램 종료 ==");
     }
 }
+
 class Article {
     int id;
     String title;
     String body;
-    LocalDateTime date;
-    int upHit=0;
+    String regDate;
+    int viewCnt;
 
-    public Article(int lastArticleID, String title, String body, LocalDateTime date) {  //생성자를 통해서 초기화 작업
+    public Article(int lastArticleID, String title, String body, String regDate , int viewCnt) {
         this.id = lastArticleID;
         this.title = title;
         this.body = body;
-        this.date = date;
+        this.regDate = regDate;
+        this.viewCnt = viewCnt;
+    }
+
+    void increaseViewCnt() {
+        this.viewCnt++ ;
     }
 }
